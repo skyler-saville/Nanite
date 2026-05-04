@@ -104,10 +104,29 @@ class AgentDefaults(Base):
     dream: DreamConfig = Field(default_factory=DreamConfig)
 
 
+class BudgetPriceConfig(Base):
+    """Token pricing for optional dollar ceilings (USD per 1K tokens)."""
+
+    input_per_1k: float = Field(default=0.0, ge=0)
+    output_per_1k: float = Field(default=0.0, ge=0)
+
+
+class BudgetConfig(Base):
+    """Request/session/day limits for lower-cost operation."""
+
+    max_input_tokens_per_request: int = Field(default=6000, ge=1)
+    max_output_tokens_per_request: int = Field(default=1200, ge=1)
+    max_session_tokens: int = Field(default=120_000, ge=1)
+    max_daily_tokens: int = Field(default=500_000, ge=1)
+    dollar_ceiling_per_day: float | None = Field(default=None, ge=0)
+    prices_usd_per_1k: dict[str, BudgetPriceConfig] = Field(default_factory=dict)
+
+
 class AgentsConfig(Base):
     """Agent configuration."""
 
     defaults: AgentDefaults = Field(default_factory=AgentDefaults)
+    budget: BudgetConfig = Field(default_factory=BudgetConfig)
 
 
 class ProviderConfig(Base):
