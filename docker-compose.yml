@@ -6,11 +6,16 @@ x-common-config: &common-config
     - ~/.nanobot:/home/nanobot/.nanobot
   cap_drop:
     - ALL
-  cap_add:
-    - SYS_ADMIN
   security_opt:
-    - apparmor=unconfined
-    - seccomp=unconfined
+    - no-new-privileges:true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+  pids_limit: 256
+  ulimits:
+    nofile:
+      soft: 1024
+      hard: 2048
 
 services:
   nanobot-gateway:
@@ -24,10 +29,10 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 1G
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 256M
+          memory: 128M
 
   nanobot-api:
     container_name: nanobot-api
@@ -41,10 +46,10 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 1G
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 256M
+          memory: 128M
 
   nanobot-cli:
     <<: *common-config
@@ -53,3 +58,28 @@ services:
     command: ["status"]
     stdin_open: true
     tty: true
+
+  nanobot-api-privileged:
+    container_name: nanobot-api-privileged
+    <<: *common-config
+    profiles:
+      - privileged
+    command:
+      ["serve", "--host", "0.0.0.0", "-w", "/home/nanobot/.nanobot/api-workspace"]
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
+    read_only: false
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:8900:8900
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
