@@ -94,17 +94,21 @@ Keep setup boring and reliable. The goal is to get you into the code quickly:
 git clone https://github.com/HKUDS/nanobot.git
 cd nanobot
 
+# Pin Poetry and use Python 3.11 (recommended baseline)
+pip install "poetry==2.1.4"
+poetry env use 3.11
+
 # Install with dev dependencies
-pip install -e ".[dev]"
+poetry install --with dev
 
 # Run tests
-pytest
+poetry run pytest
 
 # Lint code
-ruff check nanobot/
+poetry run ruff check nanobot/
 
 # Format code
-ruff format nanobot/
+poetry run ruff format nanobot/
 ```
 
 ## Contribution License
@@ -145,3 +149,11 @@ Please feel free to open an [issue](https://github.com/HKUDS/nanobot/issues), jo
 - Email: Xubin Ren (@Re-bin) — <xubinrencs@gmail.com>
 
 Thank you for spending your time and care on nanobot. We would love for more people to participate in this community, and we genuinely welcome contributions of all sizes.
+
+
+## Lockfile Policy for Deterministic Builds
+
+- Commit `poetry.lock` with every dependency change.
+- In CI and release pipelines, use the pinned Poetry version (`2.1.4` as of this document).
+- Refresh lockfiles with `poetry lock --no-update` unless you intentionally upgrade dependency versions.
+- If dependency versions must change, update `pyproject.toml`, run `poetry lock`, and include both changes in the same PR.

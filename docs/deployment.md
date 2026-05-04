@@ -1,5 +1,23 @@
 # Deployment
 
+## Poetry-based local/runtime install
+
+Use Poetry to keep dependency resolution deterministic across local/dev/CI:
+
+```bash
+poetry env use 3.11
+poetry install --with dev
+poetry run nanobot onboard
+poetry run nanobot gateway
+```
+
+For slim runtime images (without Poetry), export pinned requirements from `poetry.lock`:
+
+```bash
+poetry export --without-hashes --only main -f requirements.txt -o requirements.txt
+pip install --no-cache-dir -r requirements.txt
+```
+
 ## Docker
 
 > [!TIP]
