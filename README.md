@@ -21,6 +21,15 @@
 
 🐈 **nanobot** is an open-source and ultra-lightweight AI agent in the spirit of [OpenClaw](https://github.com/openclaw/openclaw), [Claude Code](https://www.anthropic.com/claude-code), and [Codex](https://www.openai.com/codex/). It keeps the core agent loop small and readable while still supporting chat channels, memory, MCP and practical deployment paths, so you can go from local setup to a long-running personal agent with minimal overhead.
 
+## 🎯 Mission of this fork
+
+This fork emphasizes production-safe operation on constrained hardware:
+
+- **Secure deployment first**: conservative runtime defaults, least-privilege posture, and explicit hardening guidance.
+- **Budget control by design**: practical token ceilings and cost-bound operation for unattended workloads.
+- **Low-resource operation**: sane defaults for small hosts (including Raspberry Pi-class systems) without sacrificing core capabilities.
+
+
 ## 📢 News
 
 - **2026-04-29** 🚀 Released **v0.1.5.post3** — Smarter threads on Feishu, Discord, Slack, and Teams; **DeepSeek-V4**; Hugging Face & Olostep; choices, `/history`, and steadier long chats. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.5.post3) for details.
@@ -207,6 +216,31 @@ poetry run nanobot agent
 - Want different LLM providers, web search, MCP, security settings, or more config options? See [Configuration](./docs/configuration.md)
 - Want to run nanobot in chat apps like Telegram, Discord, WeChat or Feishu? See [Chat Apps](./docs/chat-apps.md)
 - Want Docker or Linux service deployment? See [Deployment](./docs/deployment.md)
+- Need deeper operational guidance? See [Security Guide](./docs/security.md)
+
+## 🔐 Security Defaults
+
+This fork ships and documents conservative defaults for secure operations:
+
+- **Least privilege Docker posture**: run non-root where possible, avoid privileged profiles unless explicitly required, and keep host binds local-only by default.
+- **Token/budget caps**: enforce bounded request/session/day budgets to reduce runaway cost risk.
+- **Reduced tool permissions**: prefer workspace-only access, shell sandboxing, and tighter exec/network behavior for unattended deployments.
+
+Use the secure onboarding preset to initialize these constraints quickly:
+
+```bash
+nanobot onboard --profile secure-pi
+```
+
+## 🔄 Migration notes (from upstream Nanobot)
+
+If you are migrating an existing upstream setup, check these differences before replacing your config:
+
+- Existing configs remain valid, but this fork encourages tighter budgets and stricter tool boundaries for production use.
+- `nanobot onboard --profile secure-pi` applies conservative caps and workspace/sandbox restrictions; use it for new deployments or staged hardening.
+- If your current workflows rely on unrestricted shell/network tools, validate commands under the stricter profile before switching production traffic.
+- Review `docs/security.md` and `docs/deployment.md` to align secret handling, key rotation, and incident response expectations.
+
 
 ## 🧪 WebUI (Development)
 
