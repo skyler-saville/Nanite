@@ -1109,3 +1109,45 @@ Disabled skills are excluded from the main agent's skill summary, from always-on
 | Option | Default | Description |
 |--------|---------|-------------|
 | `agents.defaults.disabledSkills` | `[]` | List of skill directory names to exclude from loading. Applies to both built-in skills and workspace skills. |
+
+## Budget modes
+
+Nanobot enforces provider-call budgets before each LLM request (fail-closed) and persists usage counters in `~/.nanobot/state/budgets.json`.
+
+`agents.budget` keys:
+
+- `maxInputTokensPerRequest`
+- `maxOutputTokensPerRequest`
+- `maxSessionTokens`
+- `maxDailyTokens`
+- `dollarCeilingPerDay` (optional)
+- `pricesUsdPer1k` (optional provider/model price map)
+
+### Modes
+
+- **strict** (small devices / low spend): low per-request and daily caps.
+- **balanced** (default): conservative limits with normal usability.
+- **relaxed** (higher quality): larger request/session/day envelopes.
+
+### Example JSON
+
+```json
+{
+  "agents": {
+    "budget": {
+      "maxInputTokensPerRequest": 4000,
+      "maxOutputTokensPerRequest": 800,
+      "maxSessionTokens": 80000,
+      "maxDailyTokens": 250000,
+      "dollarCeilingPerDay": 2.0,
+      "pricesUsdPer1k": {
+        "openai/gpt-4.1-mini": { "inputPer1k": 0.0003, "outputPer1k": 0.0012 },
+        "openai": { "inputPer1k": 0.0005, "outputPer1k": 0.0015 }
+      }
+    },
+    "defaults": {
+      "maxTokens": 800
+    }
+  }
+}
+```

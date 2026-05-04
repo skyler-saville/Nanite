@@ -7,6 +7,7 @@ from pathlib import Path
 
 from nanobot.config.schema import Config
 from nanobot.providers.base import GenerationSettings, LLMProvider
+from nanobot.providers.budget import BudgetTracker
 from nanobot.providers.registry import find_by_name
 
 
@@ -88,6 +89,12 @@ def make_provider(config: Config) -> LLMProvider:
         temperature=defaults.temperature,
         max_tokens=defaults.max_tokens,
         reasoning_effort=defaults.reasoning_effort,
+    )
+    provider_name_effective = provider_name or "unknown"
+    provider.budget_tracker = BudgetTracker(
+        config=config.agents.budget,
+        provider_name=provider_name_effective,
+        model=model,
     )
     return provider
 

@@ -13,6 +13,7 @@ from typing import Any
 
 from loguru import logger
 
+from nanobot.providers.budget import BudgetTracker
 from nanobot.utils.helpers import image_placeholder_text
 
 
@@ -167,6 +168,7 @@ class LLMProvider(ABC):
         self.api_key = api_key
         self.api_base = api_base
         self.generation: GenerationSettings = GenerationSettings()
+        self.budget_tracker: BudgetTracker | None = None
 
     @staticmethod
     def _sanitize_empty_content(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -546,19 +548,48 @@ class LLMProvider(ABC):
         if reasoning_effort is self._SENTINEL:
             reasoning_effort = self.generation.reasoning_effort
 
+        if self.budget_tracker is not None:
+            decision = self.budget_tracker.check(
+                estimated_input_tokens=self._estimate_input_tokens(messages),
+                requested_output_tokens=int(max_tokens),
+            )
+            if not decision.allowed:
+                return LLMResponse(content=decision.message, finish_reason="error")
+
         kw: dict[str, Any] = dict(
             messages=messages, tools=tools, model=model,
             max_tokens=max_tokens, temperature=temperature,
             reasoning_effort=reasoning_effort, tool_choice=tool_choice,
             on_content_delta=on_content_delta,
         )
-        return await self._run_with_retry(
+        response = await self._run_with_retry(
             self._safe_chat_stream,
             kw,
             messages,
             retry_mode=retry_mode,
             on_retry_wait=on_retry_wait,
         )
+        if self.budget_tracker is not None and response.finish_reason != "error":
+            usage = response.usage or {}
+            self.budget_tracker.record_usage(int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
+        return response
+
+    @staticmethod
+    def _estimate_input_tokens(messages: list[dict[str, Any]]) -> int:
+        text_len = 0
+        for msg in messages:
+            content = msg.get("content")
+            if isinstance(content, str):
+                text_len += len(content)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        text_len += len(str(block.get("text") or ""))
+                    else:
+                        text_len += len(str(block))
+            elif content is not None:
+                text_len += len(str(content))
+        return max(1, text_len // 4)
 
     async def chat_with_retry(
         self,
@@ -588,18 +619,30 @@ class LLMProvider(ABC):
         if reasoning_effort is self._SENTINEL:
             reasoning_effort = self.generation.reasoning_effort
 
+        if self.budget_tracker is not None:
+            decision = self.budget_tracker.check(
+                estimated_input_tokens=self._estimate_input_tokens(messages),
+                requested_output_tokens=int(max_tokens),
+            )
+            if not decision.allowed:
+                return LLMResponse(content=decision.message, finish_reason="error")
+
         kw: dict[str, Any] = dict(
             messages=messages, tools=tools, model=model,
             max_tokens=max_tokens, temperature=temperature,
             reasoning_effort=reasoning_effort, tool_choice=tool_choice,
         )
-        return await self._run_with_retry(
+        response = await self._run_with_retry(
             self._safe_chat,
             kw,
             messages,
             retry_mode=retry_mode,
             on_retry_wait=on_retry_wait,
         )
+        if self.budget_tracker is not None and response.finish_reason != "error":
+            usage = response.usage or {}
+            self.budget_tracker.record_usage(int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
+        return response
 
     @classmethod
     def _extract_retry_after(cls, content: str | None) -> float | None:
