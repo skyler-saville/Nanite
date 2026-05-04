@@ -132,12 +132,20 @@
 > 
 > If you want the most stable day-to-day experience, install from PyPI or with `uv`.
 
-**Install from source**
+**Install from source (Poetry, recommended)**
 
 ```bash
 git clone https://github.com/HKUDS/nanobot.git
 cd nanobot
-pip install -e .
+poetry env use 3.11
+poetry install --with dev
+```
+
+Run commands from the Poetry environment:
+
+```bash
+poetry run nanobot --version
+poetry run nanobot agent
 ```
 
 **Install with `uv`**
@@ -157,7 +165,7 @@ pip install nanobot-ai
 **1. Initialize**
 
 ```bash
-nanobot onboard
+poetry run nanobot onboard
 ```
 
 **2. Configure** (`~/.nanobot/config.json`)
@@ -192,7 +200,7 @@ Configure these **two parts** in your config (other options have defaults). Add 
 **3. Chat**
 
 ```bash
-nanobot agent
+poetry run nanobot agent
 ```
 
 
@@ -218,7 +226,7 @@ nanobot agent
 **2. Start the gateway**
 
 ```bash
-nanobot gateway
+poetry run nanobot gateway
 ```
 
 **3. Start the webui dev server**
