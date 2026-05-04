@@ -5,6 +5,7 @@
 | `nanobot onboard` | Initialize config & workspace at `~/.nanobot/` |
 | `nanobot onboard --wizard` | Launch the interactive onboarding wizard |
 | `nanobot onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
+| `nanobot onboard --profile secure-pi` | Apply conservative low-resource security defaults during onboarding |
 | `nanobot agent -m "..."` | Chat with the agent |
 | `nanobot agent -w <workspace>` | Chat against a specific workspace |
 | `nanobot agent -w <workspace> -c <config>` | Chat against a specific workspace/config |

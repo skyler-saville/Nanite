@@ -289,6 +289,11 @@ def onboard(
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     wizard: bool = typer.Option(False, "--wizard", help="Use interactive wizard"),
+    profile: str | None = typer.Option(
+        None,
+        "--profile",
+        help="Apply a built-in onboarding preset (e.g. secure-pi)",
+    ),
 ):
     """Initialize nanobot configuration and workspace."""
     from nanobot.config.loader import get_config_path, load_config, save_config, set_config_path
@@ -306,10 +311,48 @@ def onboard(
             loaded.agents.defaults.workspace = workspace
         return loaded
 
+
+    def _apply_profile_defaults(loaded: Config) -> Config:
+        if not profile:
+            return loaded
+        selected = profile.lower().strip()
+        if selected != "secure-pi":
+            console.print(f"[red]✗[/red] Unknown profile: {profile}")
+            console.print("[yellow]Available profiles:[/yellow] secure-pi")
+            raise typer.Exit(1)
+
+        loaded.agents.defaults.max_tokens = min(loaded.agents.defaults.max_tokens, 2048)
+        loaded.agents.defaults.context_window_tokens = min(loaded.agents.defaults.context_window_tokens, 16_384)
+        loaded.agents.defaults.max_tool_iterations = min(loaded.agents.defaults.max_tool_iterations, 24)
+        loaded.agents.budget.max_input_tokens_per_request = min(
+            loaded.agents.budget.max_input_tokens_per_request, 3000
+        )
+        loaded.agents.budget.max_output_tokens_per_request = min(
+            loaded.agents.budget.max_output_tokens_per_request, 600
+        )
+        loaded.agents.budget.max_session_tokens = min(
+            loaded.agents.budget.max_session_tokens, 50_000
+        )
+        loaded.agents.budget.max_daily_tokens = min(
+            loaded.agents.budget.max_daily_tokens, 120_000
+        )
+
+        loaded.tools.restrict_to_workspace = True
+        loaded.tools.exec.sandbox = "bwrap"
+        loaded.tools.exec.timeout = min(loaded.tools.exec.timeout, 20)
+        loaded.tools.exec.deny_patterns = sorted(
+            set(loaded.tools.exec.deny_patterns).union({r"(?i)\bcurl\b", r"(?i)\bwget\b"})
+        )
+
+        loaded.api.host = "127.0.0.1"
+        loaded.gateway.host = "127.0.0.1"
+        console.print("[green]✓[/green] Applied onboarding profile: secure-pi")
+        return loaded
+
     # Create or update config
     if config_path.exists():
         if wizard:
-            config = _apply_workspace_override(load_config(config_path))
+            config = _apply_profile_defaults(_apply_workspace_override(load_config(config_path)))
         else:
             console.print(f"[yellow]Config already exists at {config_path}[/yellow]")
             console.print(
@@ -319,17 +362,17 @@ def onboard(
                 "  [bold]N[/bold] = refresh config, keeping existing values and adding new fields"
             )
             if typer.confirm("Overwrite?"):
-                config = _apply_workspace_override(Config())
+                config = _apply_profile_defaults(_apply_workspace_override(Config()))
                 save_config(config, config_path)
                 console.print(f"[green]✓[/green] Config reset to defaults at {config_path}")
             else:
-                config = _apply_workspace_override(load_config(config_path))
+                config = _apply_profile_defaults(_apply_workspace_override(load_config(config_path)))
                 save_config(config, config_path)
                 console.print(
                     f"[green]✓[/green] Config refreshed at {config_path} (existing values preserved)"
                 )
     else:
-        config = _apply_workspace_override(Config())
+        config = _apply_profile_defaults(_apply_workspace_override(Config()))
         # In wizard mode, don't save yet - the wizard will handle saving if should_save=True
         if not wizard:
             save_config(config, config_path)
