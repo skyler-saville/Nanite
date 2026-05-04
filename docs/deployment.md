@@ -28,6 +28,52 @@ pip install --no-cache-dir -r requirements.txt
 > [!IMPORTANT]
 > Official Docker usage currently means building from this repository with the included `Dockerfile`. Docker Hub images under third-party namespaces are not maintained or verified by HKUDS/nanobot; do not mount API keys or bot tokens into them unless you trust the publisher.
 
+### Build variants (core vs bridge)
+
+Use the Dockerfiles that match your deployment profile:
+
+```bash
+# Core-only image (Python runtime, no Node/WhatsApp bridge)
+docker build -f Dockerfile.core -t nanobot:core .
+
+# Full bridge image (includes Node runtime + compiled WhatsApp bridge)
+docker build -f Dockerfile.bridge -t nanobot:bridge .
+```
+
+`Dockerfile` now targets the same minimal core runtime profile by default, while `Dockerfile.bridge` provides the optional bridge-enabled image.
+
+### Raspberry Pi profile
+
+For Raspberry Pi (especially 2-4 GB models), prefer the core image and disable nonessential channels in `~/.nanobot/config.json` (for example, keep only one active channel such as Telegram or Discord, and disable WhatsApp bridge unless required).
+
+Create `docker-compose.pi.yml` as an override:
+
+```yaml
+services:
+  nanobot-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.core
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+    environment:
+      NANOBOT_CHANNELS_DISABLE: "whatsapp,feishu,wecom,dingtalk,qq,weixin,email"
+
+  nanobot-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.core
+    mem_limit: 384m
+    cpus: 0.50
+```
+
+Run with:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d nanobot-gateway
+```
+
 ### Docker Compose
 
 ```bash
