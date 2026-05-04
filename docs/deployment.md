@@ -42,6 +42,28 @@ docker compose logs -f nanobot-gateway                   # view logs
 docker compose down                                      # stop
 ```
 
+
+### Security baseline
+
+The default Compose services are configured for **least privilege** on low-resource devices:
+
+- `cap_drop: ["ALL"]` and no elevated capability adds.
+- `security_opt: ["no-new-privileges:true"]`.
+- `read_only: true` root filesystem.
+- Explicit writable paths only via `~/.nanobot:/home/nanobot/.nanobot` and `tmpfs` at `/tmp`.
+- Resource guardrails (`pids_limit`, conservative `ulimits`, and reduced memory limits).
+
+Use privileged overrides **only when a concrete feature cannot run without them** (for example, tooling that requires kernel interfaces blocked by default seccomp/AppArmor).
+
+To opt in, start the dedicated profile/service and acknowledge the risk:
+
+```bash
+# WARNING: this disables seccomp/AppArmor confinement and adds SYS_ADMIN.
+docker compose --profile privileged up -d nanobot-api-privileged
+```
+
+Prefer the default services for production and daily usage. Keep privileged profile usage temporary, audited, and disabled when not actively required.
+
 ### Docker
 
 ```bash
